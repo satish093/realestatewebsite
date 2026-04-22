@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Satish Kurelly | Georgia Real Estate</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+:root{
+  --ink:#0a0f1a;--ink2:#111827;--ink3:#1a2332;
+  --gold:#b8943f;--gold2:#d4af6a;--gold3:#f0d090;
+  --cream:#faf7f2;--text:#1c1c2e;--muted:#6b7280;
+  --white:#ffffff;--border:rgba(184,148,63,0.18);
+  --sidebar:240px;--topbar:60px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--ink);color:var(--white);overflow:hidden;}
+body{display:flex;cursor:none;}
+
+/* ── CURSOR ── */
+#cur{position:fixed;width:9px;height:9px;background:var(--gold);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .18s,height .18s;mix-blend-mode:difference;}
+#cur2{position:fixed;width:32px;height:32px;border:1px solid rgba(184,148,63,.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:left .1s ease,top .1s ease;mix-blend-mode:difference;}
+
+/* ── PRELOADER ── */
+#preloader{position:fixed;inset:0;background:var(--ink);z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .7s,visibility .7s;}
+#preloader.hide{opacity:0;visibility:hidden;}
+.pre-logo{font-family:'Cormorant Garamond',serif;font-size:72px;font-weight:300;letter-spacing:12px;opacity:0;animation:fadeUp .8s .3s forwards;}
+.pre-sub{font-size:10px;letter-spacing:6px;text-transform:uppercase;color:var(--gold);opacity:0;animation:fadeUp .8s .6s forwards;}
+.pre-bar{width:180px;height:1px;background:rgba(255,255,255,.08);margin-top:40px;overflow:hidden;opacity:0;animation:fadeUp .5s .8s forwards;}
+.pre-fill{height:100%;background:var(--gold);width:0;animation:fill 2s .9s ease forwards;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fill{to{width:100%;}}
+
+/* ── SIDEBAR ── */
+#sidebar{width:var(--sidebar);flex-shrink:0;background:var(--ink2);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;overflow:hidden;transition:width .3s ease;position:relative;z-index:100;}
+#sidebar.collapsed{width:64px;}
+.sb-brand{padding:20px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;min-height:var(--topbar);flex-shrink:0;}
+.sb-mono{width:36px;height:36px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--ink);font-weight:700;flex-shrink:0;}
+.sb-name{overflow:hidden;white-space:nowrap;}
+.sb-name-main{font-family:'Cormorant Garamond',serif;font-size:15px;letter-spacing:1px;}
+.sb-name-sub{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-top:1px;}
+.sb-toggle{position:absolute;right:-12px;top:22px;width:24px;height:24px;background:var(--ink2);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;color:rgba(255,255,255,.5);z-index:101;transition:all .2s;}
+.sb-toggle:hover{background:var(--gold);color:var(--ink);border-color:var(--gold);}
+.sb-nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:12px 0;}
+.sb-nav::-webkit-scrollbar{width:0;}
+.sb-section-label{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.2);padding:16px 18px 6px;white-space:nowrap;overflow:hidden;}
+#sidebar.collapsed .sb-section-label{opacity:0;}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 18px;cursor:pointer;transition:all .2s;position:relative;white-space:nowrap;overflow:hidden;border:none;background:none;width:100%;text-align:left;color:rgba(255,255,255,.45);font-family:'Outfit',sans-serif;font-size:13px;}
+.nav-item:hover{color:var(--white);background:rgba(255,255,255,.04);}
+.nav-item.active{color:var(--gold);background:rgba(184,148,63,.08);}
+.nav-item.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--gold);}
+.nav-icon{font-size:16px;flex-shrink:0;width:20px;text-align:center;}
+.nav-label{font-size:13px;overflow:hidden;transition:opacity .2s;}
+#sidebar.collapsed .nav-label{opacity:0;pointer-events:none;}
+.nav-badge{background:var(--gold);color:var(--ink);font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;margin-left:auto;flex-shrink:0;}
+#sidebar.collapsed .nav-badge{display:none;}
+.sb-footer{padding:16px 18px;border-top:1px solid var(--border);flex-shrink:0;}
+.sb-agent{display:flex;align-items:center;gap:10px;overflow:hidden;}
+.sb-avatar{width:34px;height:34px;background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:14px;color:var(--ink);font-weight:700;flex-shrink:0;}
+.sb-agent-info{overflow:hidden;white-space:nowrap;}
+.sb-agent-name{font-size:12px;font-weight:500;}
+.sb-agent-title{font-size:10px;color:var(--gold);letter-spacing:.5px;}
+#sidebar.collapsed .sb-agent-info{display:none;}
+
+/* ── MAIN AREA ── */
+#main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+
+/* ── TOPBAR ── */
+#topbar{height:var(--topbar);background:rgba(10,15,26,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:16px;flex-shrink:0;z-index:50;}
+.tb-page-title{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--white);flex:1;}
+.tb-page-title span{font-family:'Outfit',sans-serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.3);display:block;margin-bottom:1px;}
+.tb-search{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border:1px solid var(--border);padding:8px 16px;min-width:220px;}
+.tb-search input{background:none;border:none;color:var(--white);font-size:13px;font-family:'Outfit',sans-serif;outline:none;width:100%;}
+.tb-search input::placeholder{color:rgba(255,255,255,.25);}
+.tb-btn{padding:8px 20px;background:var(--gold);color:var(--ink);border:none;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-family:'Outfit',sans-serif;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap;}
+.tb-btn:hover{background:var(--gold3);}
+.tb-mobile-toggle{display:none;background:none;border:none;color:var(--white);font-size:20px;cursor:pointer;padding:4px;}
+
+/* ── PAGE CONTAINER ── */
+#pages{flex:1;overflow:hidden;position:relative;}
+.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;opacity:0;pointer-events:none;transform:translateY(12px);transition:opacity .35s ease,transform .35s ease;}
+.page.active{opacity:1;pointer-events:all;transform:translateY(0);}
+.page::-webkit-scrollbar{width:4px;}
+.page::-webkit-scrollbar-track{background:transparent;}
+.page::-webkit-scrollbar-thumb{background:rgba(184,148,63,.3);border-radius:2px;}
+.page-inner{padding:36px 40px;max-width:1200px;}
+
+/* ── SHARED COMPONENTS ── */
+.sec-eyebrow{font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:8px;}
+.sec-title{font-family:'Cormorant Garamond',serif;font-size:clamp(28px,3vw,44px);font-weight:300;line-height:1.1;margin-bottom:8px;}
+.sec-title em{font-style:italic;color:var(--gold2);}
+.sec-sub{font-size:13px;color:rgba(255,255,255,.4);font-weight:300;margin-bottom:36px;line-height:1.7;}
+.card{background:var(--ink2);border:1px solid var(--border);transition:border-color .2s;}
+.card:hover{border-color:rgba(184,148,63,.4);}
+.gold-btn{padding:14px 32px;background:var(--gold);color:var(--ink);border:none;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-family:'Outfit',sans-serif;font-weight:600;cursor:pointer;transition:background .2s;}
+.gold-btn:hover{background:var(--gold3);}
+.ghost-btn{padding:14px 32px;background:transparent;color:rgba(255,255,255,.6);border:1px solid var(--border);font-size:11px;letter-spacing:2px;text-transform:uppercase;font-family:'Outfit',sans-serif;cursor:pointer;transition:all .2s;}
+.ghost-btn:hover{border-color:var(--gold);color:var(--gold);}
+.stat-box{background:var(--ink);border:1px solid var(--border);padding:20px 24px;}
+.stat-num{font-family:'Cormorant Garamond',serif;font-size:32px;color:var(--white);line-height:1;}
+.stat-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.3);margin-top:4px;}
+.stat-trend{font-size:11px;margin-top:6px;}
+.up{color:#4ade80;}.dn{color:#f87171;}
+.fi{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--white);padding:12px 14px;font-size:13px;font-family:'Outfit',sans-serif;outline:none;width:100%;transition:border-color .2s;}
+.fi:focus{border-color:var(--gold);}
+.fi::placeholder{color:rgba(255,255,255,.2);}
+.fl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.3);display:block;margin-bottom:6px;}
+.fg{margin-bottom:18px;}
+.slider-wrap{margin-bottom:22px;}
+.slider-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.slider-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.35);}
+.slider-val{font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--gold2);}
+input[type=range]{width:100%;accent-color:var(--gold);height:3px;cursor:pointer;background:rgba(255,255,255,.1);}
+select.fi{appearance:none;cursor:pointer;}
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;}
+.pill{padding:7px 16px;background:transparent;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4);font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:'Outfit',sans-serif;transition:all .2s;}
+.pill.active,.pill:hover{border-color:var(--gold);color:var(--gold);background:rgba(184,148,63,.07);}
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;}
+.result-row{background:rgba(255,255,255,.03);border:1px solid var(--border);padding:16px 20px;display:flex;justify-content:space-between;align-items:center;}
+.result-row-label{font-size:12px;color:rgba(255,255,255,.5);}
+.result-row-val{font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--gold2);}
+.big-result{background:var(--ink);border:1px solid var(--border);padding:28px;text-align:center;margin-bottom:16px;}
+.big-result-label{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:10px;}
+.big-result-num{font-family:'Cormorant Garamond',serif;font-size:52px;color:var(--white);line-height:1;}
+.big-result-sub{font-size:11px;color:rgba(255,255,255,.25);margin-top:6px;letter-spacing:1px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start;}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.four-col{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;}
+.tab-bar{display:flex;border-bottom:1px solid var(--border);margin-bottom:32px;}
+.tab{padding:11px 24px;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;color:rgba(255,255,255,.4);font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-family:'Outfit',sans-serif;transition:all .2s;white-space:nowrap;}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-bottom:2px;}
+
+/* ── HOME PAGE ── */
+.hero-inner{min-height:340px;background:linear-gradient(135deg,var(--ink) 0%,var(--ink3) 100%);position:relative;overflow:hidden;padding:48px;margin-bottom:2px;display:flex;align-items:flex-end;}
+.hero-inner::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(184,148,63,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(184,148,63,.04) 1px,transparent 1px);background-size:48px 48px;}
+.hero-inner canvas{position:absolute;inset:0;}
+.hero-inner-text{position:relative;z-index:2;}
+.hero-h1{font-family:'Cormorant Garamond',serif;font-size:clamp(40px,5vw,72px);font-weight:300;line-height:1;margin-bottom:16px;}
+.hero-h1 em{color:var(--gold2);font-style:italic;}
+.hero-eyebrow{font-size:10px;letter-spacing:5px;text-transform:uppercase;color:var(--gold);margin-bottom:16px;}
+.hero-sub{font-size:14px;color:rgba(255,255,255,.55);max-width:480px;line-height:1.7;font-weight:300;margin-bottom:28px;}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;}
+.home-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-bottom:32px;}
+.quick-tools{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-bottom:32px;}
+.qt{background:var(--ink2);border:1px solid var(--border);padding:24px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:16px;}
+.qt:hover{border-color:var(--gold);background:rgba(184,148,63,.05);}
+.qt-icon{font-size:28px;flex-shrink:0;}
+.qt-title{font-size:13px;font-weight:500;margin-bottom:3px;}
+.qt-sub{font-size:11px;color:rgba(255,255,255,.35);}
+
+/* ── LISTINGS ── */
+.filter-panel{background:var(--ink2);border:1px solid var(--border);padding:20px 24px;margin-bottom:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+.filter-panel .fg{margin-bottom:0;flex:1;min-width:120px;}
+.listing-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:2px;}
+.lcard{background:var(--ink2);border:1px solid var(--border);overflow:hidden;cursor:pointer;transition:transform .25s,border-color .2s;}
+.lcard:hover{transform:translateY(-3px);border-color:rgba(184,148,63,.4);}
+.lcard-img{height:200px;overflow:hidden;position:relative;background:var(--ink3);}
+.lcard-img img{width:100%;height:100%;object-fit:cover;transition:transform .5s;}
+.lcard:hover .lcard-img img{transform:scale(1.06);}
+.lcard-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.1);font-size:40px;}
+.lcard-status{position:absolute;top:12px;left:12px;padding:4px 10px;font-size:9px;letter-spacing:2px;text-transform:uppercase;}
+.status-sale{background:rgba(184,148,63,.9);color:var(--ink);}
+.status-rent{background:rgba(255,255,255,.15);color:var(--white);border:1px solid rgba(255,255,255,.3);}
+.lcard-body{padding:18px 20px;}
+.lcard-price{font-family:'Cormorant Garamond',serif;font-size:26px;color:var(--white);margin-bottom:4px;}
+.lcard-addr{font-size:12px;color:rgba(255,255,255,.4);margin-bottom:14px;line-height:1.4;}
+.lcard-specs{display:flex;gap:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,.05);}
+.lspec-val{font-size:14px;color:var(--white);font-weight:500;}
+.lspec-key{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.25);}
+.lcard-hover-bar{background:var(--gold);color:var(--ink);text-align:center;padding:11px;font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;transform:translateY(100%);transition:transform .25s;}
+.lcard:hover .lcard-hover-bar{transform:translateY(0);}
+.load-more-btn{display:block;width:100%;padding:16px;background:transparent;border:1px solid var(--border);color:rgba(255,255,255,.5);font-size:11px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;font-family:'Outfit',sans-serif;margin-top:2px;transition:all .2s;}
+.load-more-btn:hover{border-color:var(--gold);color:var(--gold);}
+.load-state{text-align:center;padding:60px;color:rgba(255,255,255,.2);font-size:13px;letter-spacing:2px;}
+.load-state::before{content:'';display:block;width:28px;height:28px;border:1px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── MAP ── */
+#mapEl{height:calc(100vh - var(--topbar) - 120px);min-height:400px;border:1px solid var(--border);}
+
+/* ── SCHOOL CARDS ── */
+.school-card{background:var(--white);border:1px solid rgba(184,148,63,.15);padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:2px;transition:border-color .2s;}
+.school-card:hover{border-color:var(--gold);}
+.school-name{font-size:14px;font-weight:500;color:var(--text);margin-bottom:3px;}
+.school-meta{font-size:11px;color:var(--muted);}
+.grade-circle{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;flex-shrink:0;}
+.ga{background:#dcfce7;color:#15803d;}.gb{background:#fef9c3;color:#854d0e;}
+
+/* ── BUYER STEPS ── */
+.step-track{display:flex;gap:0;margin-bottom:32px;overflow-x:auto;}
+.step-btn{flex:1;min-width:120px;padding:16px 12px;background:var(--ink2);border:1px solid var(--border);border-right:none;cursor:pointer;text-align:center;transition:all .2s;position:relative;}
+.step-btn:last-child{border-right:1px solid var(--border);}
+.step-btn.active,.step-btn:hover{background:rgba(184,148,63,.08);border-color:var(--gold);}
+.step-btn.active{z-index:1;}
+.step-num{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:6px;}
+.step-icon{font-size:22px;margin-bottom:6px;}
+.step-title{font-size:11px;color:rgba(255,255,255,.7);font-weight:500;}
+.step-btn.active .step-title{color:var(--gold);}
+.step-detail{background:var(--ink2);border:1px solid var(--border);padding:32px;}
+
+/* ── OPEN HOUSES ── */
+.oh-card{background:var(--ink2);border:1px solid var(--border);padding:22px;cursor:pointer;transition:border-color .2s;}
+.oh-card:hover{border-color:var(--gold);}
+.oh-date-badge{display:inline-flex;flex-direction:column;background:rgba(184,148,63,.1);border:1px solid var(--border);padding:8px 14px;margin-bottom:14px;}
+.oh-date{font-size:11px;color:var(--gold);letter-spacing:1px;}
+.oh-time{font-size:13px;color:var(--white);font-weight:500;}
+
+/* ── VALUATION RESULT ── */
+.val-range{display:flex;align-items:center;justify-content:center;gap:32px;padding:32px 0;}
+.val-range .mid{text-align:center;}
+.val-range .side{text-align:center;opacity:.55;}
+.val-range .mid .num{font-family:'Cormorant Garamond',serif;font-size:56px;color:var(--white);line-height:1;}
+.val-range .side .num{font-family:'Cormorant Garamond',serif;font-size:32px;color:var(--white);line-height:1;}
+.val-range .lbl{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:6px;}
+
+/* ── CONTACT ── */
+.contact-info-item{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
+.contact-icon{width:38px;height:38px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.contact-info-text{font-size:13px;color:rgba(255,255,255,.6);}
+
+/* ── MODAL ── */
+.modal-ov{position:fixed;inset:0;background:rgba(5,8,15,.92);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);}
+.modal-ov.open{display:flex;}
+.modal-box{background:var(--ink2);border:1px solid var(--border);max-width:640px;width:100%;max-height:90vh;overflow-y:auto;}
+.modal-hdr{padding:22px 26px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);}
+.modal-hdr h3{font-family:'Cormorant Garamond',serif;font-size:20px;}
+.modal-x{background:none;border:none;color:rgba(255,255,255,.4);font-size:20px;cursor:pointer;}
+.modal-x:hover{color:var(--gold);}
+.modal-bdy{padding:26px;}
+.modal-img{width:100%;height:260px;object-fit:cover;display:block;}
+.modal-img-ph{width:100%;height:260px;background:var(--ink3);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.1);font-size:48px;}
+.modal-price{font-family:'Cormorant Garamond',serif;font-size:36px;margin:18px 0 4px;}
+.modal-addr{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:22px;letter-spacing:.3px;}
+.modal-specs{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-bottom:22px;}
+.mspec{background:rgba(255,255,255,.03);border:1px solid var(--border);padding:14px;text-align:center;}
+.mspec strong{display:block;font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--gold2);}
+.mspec span{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.3);}
+.modal-desc{font-size:13px;color:rgba(255,255,255,.45);line-height:1.8;margin-bottom:22px;}
+
+/* ── MARKET CHARTS ── */
+.chart-box{background:var(--ink);border:1px solid var(--border);padding:24px;}
+.chart-title{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:18px;}
+
+/* ── RVB ── */
+.rvb-verdict{border:2px solid var(--gold);padding:28px;text-align:center;background:rgba(184,148,63,.04);}
+.rvb-verdict-label{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:8px;}
+.rvb-verdict-main{font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--gold2);margin-bottom:6px;}
+.rvb-verdict-num{font-family:'Cormorant Garamond',serif;font-size:48px;color:var(--white);line-height:1;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  #sidebar{position:fixed;left:0;top:0;bottom:0;z-index:200;transform:translateX(-100%);width:var(--sidebar) !important;}
+  #sidebar.mobile-open{transform:translateX(0);}
+  .tb-mobile-toggle{display:flex;}
+  .page-inner{padding:20px;}
+  .two-col,.three-col,.four-col,.kpi-grid,.home-stats,.quick-tools{grid-template-columns:1fr;}
+  .val-range{flex-direction:column;gap:16px;}
+  .result-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div id="cur"></div><div id="cur2"></div>
+
+<!-- PRELOADER -->
+<div id="preloader">
+  <div class="pre-logo">SK</div>
+  <div class="pre-sub">Satish Kurelly · Georgia Real Estate</div>
+  <div class="pre-bar"><div class="pre-fill"></div></div>
+</div>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sb-brand">
+    <div class="sb-mono">SK</div>
+    <div class="sb-name">
+      <div class="sb-name-main">Satish Kurelly</div>
+      <div class="sb-name-sub">Georgia Realtor</div>
+    </div>
+  </div>
+  <div class="sb-toggle" onclick="toggleSidebar()" id="sbToggle">◀</div>
+
+  <div class="sb-nav">
+    <div class="sb-section-label">Main</div>
+    <button class="nav-item active" onclick="goTo('home',this)"><span class="nav-icon">🏡</span><span class="nav-label">Home</span></button>
+    <button class="nav-item" onclick="goTo('listings',this)"><span class="nav-icon">🔍</span><span class="nav-label">Search Listings</span><span class="nav-badge" id="listingBadge">—</span></button>
+    <button class="nav-item" onclick="goTo('map',this)"><span class="nav-icon">🗺</span><span class="nav-label">Property Map</span></button>
+    <button class="nav-item" onclick="goTo('openhouses',this)"><span class="nav-icon">🚪</span><span class="nav-label">Open Houses</span><span class="nav-badge">6</span></button>
+
+    <div class="sb-section-label">Tools</div>
+    <button class="nav-item" onclick="goTo('valuation',this)"><span class="nav-icon">💰</span><span class="nav-label">Home Valuation</span></button>
+    <button class="nav-item" onclick="goTo('mortgage',this)"><span class="nav-icon">🧮</span><span class="nav-label">Mortgage Calc</span></button>
+    <button class="nav-item" onclick="goTo('rvb',this)"><span class="nav-icon">⚖️</span><span class="nav-label">Rent vs Buy</span></button>
+    <button class="nav-item" onclick="goTo('closing',this)"><span class="nav-icon">📋</span><span class="nav-label">Closing Costs</span></button>
+
+    <div class="sb-section-label">Explore</div>
+    <button class="nav-item" onclick="goTo('neighborhoods',this)"><span class="nav-icon">📍</span><span class="nav-label">Neighborhoods</span></button>
+    <button class="nav-item" onclick="goTo('market',this)"><span class="nav-icon">📊</span><span class="nav-label">Market Stats</span></button>
+    <button class="nav-item" onclick="goTo('schools',this)"><span class="nav-icon">🏫</span><span class="nav-label">School Finder</span></button>
+    <button class="nav-item" onclick="goTo('buyerguide',this)"><span class="nav-icon">📖</span><span class="nav-label">Buyer's Guide</span></button>
+
+    <div class="sb-section-label">Connect</div>
+    <button class="nav-item" onclick="goTo('contact',this)"><span class="nav-icon">✉</span><span class="nav-label">Contact Satish</span></button>
+  </div>
+
+  <div class="sb-footer">
+    <div class="sb-agent">
+      <div class="sb-avatar">SK</div>
+      <div class="sb-agent-info">
+        <div class="sb-agent-name">Satish Kurelly</div>
+        <div class="sb-agent-title">GA Licensed · FMLS</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div id="main">
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <button class="tb-mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('mobile-open')">☰</button>
+    <div class="tb-page-title">
+      <span id="tbSub">Georgia Real Estate</span>
+      <span id="tbTitle">Home</span>
+    </div>
+    <div class="tb-search">
+      <span style="color:rgba(255,255,255,.3);font-size:13px;">⌕</span>
+      <input type="text" id="globalSearch" placeholder="Search city, ZIP, address…" onkeydown="if(event.key==='Enter'){goTo('listings',null);document.getElementById('fCity').value=this.value;loadListings(1);}"/>
+    </div>
+    <button class="tb-btn" onclick="goTo('contact',null)">Book a Call</button>
+  </div>
+
+  <!-- PAGES -->
+  <div id="pages">
+
+    <!-- ════ HOME ════ -->
+    <div class="page active" id="page-home">
+      <div class="page-inner" style="max-width:100%;padding:0;">
+        <div class="hero-inner">
+          <canvas id="heroCanvas" style="position:absolute;inset:0;z-index:0;"></canvas>
+          <div class="hero-inner-text" style="max-width:600px;">
+            <div class="hero-eyebrow">Georgia Licensed Realtor · FMLS Member</div>
+            <div class="hero-h1">Find Your<br/><em>Dream Home</em><br/>in Georgia</div>
+            <p class="hero-sub">Live MLS listings across Metro Atlanta, Cumming, Alpharetta, Roswell & beyond — with 14 years of expertise.</p>
+            <div class="hero-btns">
+              <button class="gold-btn" onclick="goTo('listings',null)"><span>Browse Listings</span></button>
+              <button class="ghost-btn" onclick="goTo('valuation',null)">Get Home Value</button>
+            </div>
+          </div>
+        </div>
+        <div style="padding:28px 36px;">
+          <div class="home-stats" style="margin-bottom:28px;">
+            <div class="stat-box"><div class="stat-num" id="homeStatCount">60K+</div><div class="stat-label">Active Listings</div><div class="stat-trend up">↑ Live FMLS Data</div></div>
+            <div class="stat-box"><div class="stat-num">$485K</div><div class="stat-label">Median Price Cumming</div><div class="stat-trend up">↑ 12% YoY</div></div>
+            <div class="stat-box"><div class="stat-num">14+</div><div class="stat-label">Years Experience</div><div class="stat-trend up">↑ Tech + RE</div></div>
+            <div class="stat-box"><div class="stat-num">FMLS</div><div class="stat-label">MLS Member</div><div class="stat-trend up">↑ 60K+ Listings</div></div>
+          </div>
+          <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:14px;">Quick Access</div>
+          <div class="quick-tools">
+            <div class="qt" onclick="goTo('listings',null)"><div class="qt-icon">🔍</div><div><div class="qt-title">Search Listings</div><div class="qt-sub">Live MLS · 60K+ properties</div></div></div>
+            <div class="qt" onclick="goTo('valuation',null)"><div class="qt-icon">💰</div><div><div class="qt-title">Home Valuation</div><div class="qt-sub">Free instant estimate</div></div></div>
+            <div class="qt" onclick="goTo('mortgage',null)"><div class="qt-icon">🧮</div><div><div class="qt-title">Mortgage Calculator</div><div class="qt-sub">Estimate your payment</div></div></div>
+            <div class="qt" onclick="goTo('rvb',null)"><div class="qt-icon">⚖️</div><div><div class="qt-title">Rent vs Buy</div><div class="qt-sub">5-year financial comparison</div></div></div>
+            <div class="qt" onclick="goTo('schools',null)"><div class="qt-icon">🏫</div><div><div class="qt-title">School Finder</div><div class="qt-sub">Top-rated schools by area</div></div></div>
+            <div class="qt" onclick="goTo('market',null)"><div class="qt-icon">📊</div><div><div class="qt-title">Market Stats</div><div class="qt-sub">Trends & insights</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ LISTINGS ════ -->
+    <div class="page" id="page-listings">
+      <div class="page-inner">
+        <div class="sec-eyebrow">Live MLS · FMLS</div>
+        <div class="sec-title" style="margin-bottom:24px;">Search <em>Properties</em></div>
+        <div class="filter-panel">
+          <div class="fg"><label class="fl">City / ZIP</label><input class="fi" id="fCity" type="text" placeholder="Cumming, Alpharetta…" value="Cumming" style="width:160px;"/></div>
+          <div class="fg"><label class="fl">Type</label><select class="fi" id="fType" style="width:130px;"><option value="">All Types</option><option value="Residential">For Sale</option><option value="ResidentialLease">For Rent</option></select></div>
+          <div class="fg"><label class="fl">Beds</label><select class="fi" id="fBeds" style="width:100px;"><option value="">Any</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+          <div class="fg"><label class="fl">Max Price</label><select class="fi" id="fMax" style="width:120px;"><option value="">Any</option><option value="300000">$300K</option><option value="500000">$500K</option><option value="750000">$750K</option><option value="1000000">$1M</option><option value="2000000">$2M</option></select></div>
+          <div class="fg" style="margin-top:auto;"><button class="gold-btn" onclick="loadListings(1)" style="padding:12px 24px;">Search</button></div>
+        </div>
+        <div style="font-size:12px;color:rgba(255,255,255,.3);margin-bottom:20px;letter-spacing:.5px;" id="resMeta"></div>
+        <div id="listingGrid" class="listing-grid"></div>
+        <button class="load-more-btn" id="loadMoreBtn" style="display:none;" onclick="loadMore()">Load More Properties</button>
+      </div>
+    </div>
+
+    <!-- ════ MAP ════ -->
+    <div class="page" id="page-map">
+      <div class="page-inner">
+        <div class="sec-eyebrow">Explore</div>
+        <div class="sec-title" style="margin-bottom:24px;">Property <em>Map</em></div>
+        <div id="mapEl"></div>
+      </div>
+    </div>
+
+    <!-- ════ OPEN HOUSES ════ -->
+    <div class="page" id="page-openhouses">
+      <div class="page-inner">
+        <div class="sec-eyebrow">This Weekend</div>
+        <div class="sec-title" style="margin-bottom:8px;">Open <em>Houses</em></div>
+        <p class="sec-sub" id="ohDateLine"></p>
+        <div id="ohGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:2px;"></div>
+        <div style="margin-top:32px;"><button class="ghost-btn" onclick="goTo('contact',null)">Schedule a Private Showing →</button></div>
+      </div>
+    </div>
+
+    <!-- ════ VALUATION ════ -->
+    <div class="page" id="page-valuation">
+      <div class="page-inner" style="max-width:800px;">
+        <div class="sec-eyebrow">Free Instant Estimate</div>
+        <div class="sec-title">What's Your Home <em>Worth?</em></div>
+        <p class="sec-sub">Get an automated estimate based on recent comparable sales. No obligation.</p>
+        <div id="valForm">
+          <div class="two-col" style="margin-bottom:18px;">
+            <div class="fg" style="grid-column:span 2 / span 2;"><label class="fl">Property Address</label><input class="fi" id="vAddr" placeholder="123 Main St, Cumming, GA"/></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:18px;">
+            <div class="fg"><label class="fl">Beds</label><select class="fi" id="vBeds"><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5+</option></select></div>
+            <div class="fg"><label class="fl">Baths</label><select class="fi" id="vBaths"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4+</option></select></div>
+            <div class="fg"><label class="fl">Sq Footage</label><input class="fi" id="vSqft" type="number" placeholder="2000"/></div>
+            <div class="fg"><label class="fl">Year Built</label><input class="fi" id="vYear" type="number" placeholder="2005"/></div>
+          </div>
+          <div class="fg"><label class="fl">Your Email (to receive full report)</label><input class="fi" id="vEmail" type="email" placeholder="your@email.com"/></div>
+          <button class="gold-btn" id="valBtn" onclick="runValuation()" style="width:100%;padding:16px;margin-top:8px;">Get My Free Home Valuation →</button>
+        </div>
+        <div id="valResult" style="display:none;">
+          <div class="card" style="padding:0 0 32px;">
+            <div class="val-range">
+              <div class="side"><div class="lbl">Low</div><div class="num" id="valLow">—</div></div>
+              <div class="mid"><div class="lbl">Best Estimate</div><div class="num" id="valMid">—</div></div>
+              <div class="side"><div class="lbl">High</div><div class="num" id="valHigh">—</div></div>
+            </div>
+            <div style="height:4px;background:rgba(255,255,255,.06);margin:0 32px 24px;position:relative;"><div style="position:absolute;left:12%;right:12%;top:0;bottom:0;background:linear-gradient(90deg,var(--gold),var(--gold2));"></div></div>
+            <div style="padding:0 32px;">
+              <div style="font-size:12px;color:rgba(255,255,255,.35);margin-bottom:24px;" id="valAddrDisplay"></div>
+              <div class="three-col" style="margin-bottom:24px;">
+                <div class="stat-box"><div class="stat-num" id="valPsf">—</div><div class="stat-label">Price / Sq Ft</div></div>
+                <div class="stat-box"><div class="stat-num">18</div><div class="stat-label">Avg Days on Market</div></div>
+                <div class="stat-box"><div class="stat-num">↑9%</div><div class="stat-label">Annual Appreciation</div></div>
+              </div>
+              <div style="display:flex;gap:12px;">
+                <button class="gold-btn" style="flex:1;" onclick="goTo('contact',null)">Get Agent Valuation →</button>
+                <button class="ghost-btn" onclick="document.getElementById('valResult').style.display='none';document.getElementById('valForm').style.display='block';">Try Another</button>
+              </div>
+              <p style="font-size:11px;color:rgba(255,255,255,.2);margin-top:16px;line-height:1.7;">Automated estimate based on nearby comparable sales. For a precise valuation, contact Satish directly.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ MORTGAGE ════ -->
+    <div class="page" id="page-mortgage">
+      <div class="page-inner" style="max-width:900px;">
+        <div class="sec-eyebrow">Financial Planning</div>
+        <div class="sec-title">Mortgage <em>Calculator</em></div>
+        <p class="sec-sub">Estimate your monthly payment instantly</p>
+        <div class="two-col">
+          <div class="card" style="padding:32px;">
+            <div class="slider-wrap"><div class="slider-row"><span class="slider-label">Home Price</span><span class="slider-val" id="hpDisp">$500,000</span></div><input type="range" id="homePrice" min="100000" max="2000000" step="10000" value="500000" oninput="calcMortgage()"/></div>
+            <div class="slider-wrap"><div class="slider-row"><span class="slider-label">Down Payment</span><span class="slider-val" id="dpDisp">20% · $100,000</span></div><input type="range" id="downPct" min="3" max="50" step="1" value="20" oninput="calcMortgage()"/></div>
+            <div class="slider-wrap"><div class="slider-row"><span class="slider-label">Interest Rate</span><span class="slider-val" id="rateDisp">6.5%</span></div><input type="range" id="rateSlider" min="3" max="12" step="0.1" value="6.5" oninput="calcMortgage()"/></div>
+            <div><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:10px;">Loan Term</div>
+            <div style="display:flex;gap:6px;" id="termBtns">
+              <button class="pill active" onclick="setTerm(30,this)">30 yr</button>
+              <button class="pill" onclick="setTerm(20,this)">20 yr</button>
+              <button class="pill" onclick="setTerm(15,this)">15 yr</button>
+              <button class="pill" onclick="setTerm(10,this)">10 yr</button>
+            </div></div>
+          </div>
+          <div>
+            <div class="big-result"><div class="big-result-label">Monthly Payment</div><div class="big-result-num" id="mResult">$2,844</div><div class="big-result-sub">Principal & Interest</div></div>
+            <div class="result-grid" style="margin-bottom:16px;">
+              <div class="result-row"><span class="result-row-label">Loan Amount</span><span class="result-row-val" id="loanRes">$400K</span></div>
+              <div class="result-row"><span class="result-row-label">Total Payment</span><span class="result-row-val" id="totalRes">$623K</span></div>
+              <div class="result-row"><span class="result-row-label">Total Interest</span><span class="result-row-val" id="intRes">$223K</span></div>
+              <div class="result-row"><span class="result-row-label">Down Payment</span><span class="result-row-val" id="downRes">$100K</span></div>
+            </div>
+            <div class="chart-box" style="margin-bottom:16px;"><div class="chart-title">Payment Breakdown</div><canvas id="pieChart" height="130"></canvas></div>
+            <button class="gold-btn" style="width:100%;" onclick="goTo('contact',null)">Get Pre-Approved with Satish →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ RENT VS BUY ════ -->
+    <div class="page" id="page-rvb">
+      <div class="page-inner" style="max-width:900px;">
+        <div class="sec-eyebrow">Smart Decision Tool</div>
+        <div class="sec-title">Rent vs <em>Buy</em></div>
+        <p class="sec-sub">See the true multi-year financial picture for your situation</p>
+        <div class="two-col">
+          <div class="card" style="padding:32px;">
+            <div class="slider-wrap"><div class="slider-row"><span class="slider-label">Home Price</span><span class="slider-val" id="rvbPL">$450,000</span></div><input type="range" id="rvbP" min="150000" max="1500000" step="10000" value="450000" oninput="calcRvB()"/></div>
+            <div class="slider-wrap"><div class="slider-row"><span class="slider-label">Monthly Rent</span><span class="slider-val" id="rvbRL">$2,200</span></div><input type="range" id="rvbR" min="800" max="6000" step="50" value="2200" oninput="calcRvB()"/></div>
+            <div class="slider-wrap"><div class="slider-row"><span class="slider-label">Down Payment</span><span class="slider-val" id="rvbDL">10%</span></div><input type="range" id="rvbD" min="3" max="30" step="1" value="10" oninput="calcRvB()"/></div>
+            <div class="slider-wrap"><div class="slider-row"><span class="slider-label">Years to Compare</span><span class="slider-val" id="rvbYL">5 years</span></div><input type="range" id="rvbY" min="1" max="10" step="1" value="5" oninput="calcRvB()"/></div>
+          </div>
+          <div>
+            <div class="rvb-verdict" style="margin-bottom:16px;"><div class="rvb-verdict-label">Verdict</div><div class="rvb-verdict-main" id="rvbWinner">Buying saves more</div><div class="rvb-verdict-num" id="rvbSavings">$0</div><div style="font-size:11px;color:rgba(255,255,255,.25);margin-top:4px;">net advantage</div></div>
+            <div class="result-grid" style="margin-bottom:16px;">
+              <div class="result-row"><span class="result-row-label">Total Rent Cost</span><span class="result-row-val" style="color:#f87171;" id="rvbTR">—</span></div>
+              <div class="result-row"><span class="result-row-label">Total Buy Cost</span><span class="result-row-val" style="color:#4ade80;" id="rvbTB">—</span></div>
+              <div class="result-row"><span class="result-row-label">Equity Built</span><span class="result-row-val" id="rvbEQ">—</span></div>
+              <div class="result-row"><span class="result-row-label">Appreciation</span><span class="result-row-val" id="rvbAP">—</span></div>
+            </div>
+            <button class="gold-btn" style="width:100%;" onclick="goTo('contact',null)">Talk to Satish About Buying →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ CLOSING COSTS ════ -->
+    <div class="page" id="page-closing">
+      <div class="page-inner" style="max-width:860px;">
+        <div class="sec-eyebrow">Georgia Specific</div>
+        <div class="sec-title">Closing Cost <em>Estimator</em></div>
+        <p class="sec-sub">Know exactly what to budget before you close — includes GA-specific taxes and fees</p>
+        <div class="two-col">
+          <div class="card" style="padding:32px;">
+            <div class="fg"><label class="fl">Purchase Price</label><input class="fi" id="ccPrice" type="number" value="450000" oninput="calcClosing()"/></div>
+            <div class="fg"><label class="fl">Loan Amount</label><input class="fi" id="ccLoan" type="number" value="360000" oninput="calcClosing()"/></div>
+            <div class="fg"><label class="fl">I Am The</label><select class="fi" id="ccRole" onchange="calcClosing()"><option value="buyer">Buyer</option><option value="seller">Seller</option></select></div>
+            <div style="background:rgba(184,148,63,.05);border:1px solid var(--border);padding:16px;font-size:12px;color:rgba(255,255,255,.4);line-height:1.8;margin-top:8px;">Georgia requires an attorney at closing. GA intangibles tax (0.2% of loan) and transfer tax (0.1% of price) are state-specific costs included in this estimate.</div>
+          </div>
+          <div id="ccResults"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ NEIGHBORHOODS ════ -->
+    <div class="page" id="page-neighborhoods">
+      <div class="page-inner">
+        <div class="sec-eyebrow">Georgia Living</div>
+        <div class="sec-title" style="color:var(--white);">Explore <em>Neighborhoods</em></div>
+        <div class="tab-bar">
+          <button class="tab active" onclick="showNhood('cumming',this)">Cumming</button>
+          <button class="tab" onclick="showNhood('alpharetta',this)">Alpharetta</button>
+          <button class="tab" onclick="showNhood('roswell',this)">Roswell</button>
+        </div>
+        <div id="nhoodContent"></div>
+      </div>
+    </div>
+
+    <!-- ════ MARKET STATS ════ -->
+    <div class="page" id="page-market">
+      <div class="page-inner">
+        <div class="sec-eyebrow">Live Insights</div>
+        <div class="sec-title" style="margin-bottom:24px;">Market <em>Dashboard</em></div>
+        <div class="tab-bar">
+          <button class="tab active" onclick="setMktab('cumming',this)">Cumming</button>
+          <button class="tab" onclick="setMktab('alpharetta',this)">Alpharetta</button>
+          <button class="tab" onclick="setMktab('roswell',this)">Roswell</button>
+        </div>
+        <div class="kpi-grid" style="margin-bottom:2px;">
+          <div class="stat-box"><div class="stat-num" id="kPrice">$485K</div><div class="stat-label">Median Price</div><div class="stat-trend up">↑ 12% YoY</div></div>
+          <div class="stat-box"><div class="stat-num" id="kDom">18</div><div class="stat-label">Avg Days on Market</div><div class="stat-trend up">↓ 4 days</div></div>
+          <div class="stat-box"><div class="stat-num" id="kInv">142</div><div class="stat-label">Active Listings</div><div class="stat-trend dn">↓ 8% YoY</div></div>
+          <div class="stat-box"><div class="stat-num" id="kSold">89</div><div class="stat-label">Sold (30 days)</div><div class="stat-trend up">↑ 6% YoY</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:2px;margin-top:2px;">
+          <div class="chart-box"><div class="chart-title">12-Month Median Price Trend (×$1K)</div><canvas id="priceChart" height="200"></canvas></div>
+          <div class="chart-box"><div class="chart-title">Price Distribution</div><canvas id="distChart" height="200"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ SCHOOLS ════ -->
+    <div class="page" id="page-schools">
+      <div class="page-inner">
+        <div class="sec-eyebrow">For Families</div>
+        <div class="sec-title" style="color:var(--white);margin-bottom:8px;">School District <em>Finder</em></div>
+        <p class="sec-sub">Top-rated schools near every Georgia neighborhood</p>
+        <div class="tab-bar">
+          <button class="tab active" onclick="showSchools('cumming',this)">Cumming / Forsyth County</button>
+          <button class="tab" onclick="showSchools('alpharetta',this)">Alpharetta / Milton</button>
+          <button class="tab" onclick="showSchools('roswell',this)">Roswell / East Cobb</button>
+        </div>
+        <div id="schoolGrid"></div>
+      </div>
+    </div>
+
+    <!-- ════ BUYER'S GUIDE ════ -->
+    <div class="page" id="page-buyerguide">
+      <div class="page-inner" style="max-width:900px;">
+        <div class="sec-eyebrow">Step by Step</div>
+        <div class="sec-title" style="color:var(--white);margin-bottom:8px;">Buyer's <em>Journey</em></div>
+        <p class="sec-sub">Click each step to learn exactly what to expect in Georgia</p>
+        <div class="step-track" id="stepTrack"></div>
+        <div class="step-detail" id="stepDetail"></div>
+      </div>
+    </div>
+
+    <!-- ════ CONTACT ════ -->
+    <div class="page" id="page-contact">
+      <div class="page-inner" style="max-width:860px;">
+        <div class="two-col">
+          <div>
+            <div class="sec-eyebrow">Let's Connect</div>
+            <div class="sec-title" style="color:var(--white);margin-bottom:20px;">Start Your <em>Journey</em></div>
+            <p style="font-size:14px;color:rgba(255,255,255,.45);line-height:1.9;margin-bottom:32px;font-weight:300;">Ready to find your perfect Georgia home? I'd love to connect and help you navigate the market with data-driven strategy and personalized service.</p>
+            <div class="contact-info-item"><div class="contact-icon">✉</div><div class="contact-info-text">satish093@gmail.com</div></div>
+            <div class="contact-info-item"><div class="contact-icon">📍</div><div class="contact-info-text">Georgia, USA · Metro Atlanta Area</div></div>
+            <div class="contact-info-item"><div class="contact-icon">🏛</div><div class="contact-info-text">FMLS Member · GA Licensed Realtor</div></div>
+            <div class="contact-info-item"><div class="contact-icon">💼</div><div class="contact-info-text">Virtual Properties Realty · CloudFen LLC</div></div>
+            <div style="margin-top:32px;padding:24px;background:rgba(184,148,63,.06);border:1px solid var(--border);">
+              <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:8px;">Response Time</div>
+              <div style="font-size:14px;color:rgba(255,255,255,.6);">Typically within <strong style="color:var(--white);">2–4 hours</strong> during business hours</div>
+            </div>
+          </div>
+          <div class="card" style="padding:32px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+              <div class="fg"><label class="fl">First Name</label><input class="fi" id="cfn" placeholder="First"/></div>
+              <div class="fg"><label class="fl">Last Name</label><input class="fi" id="cln" placeholder="Last"/></div>
+            </div>
+            <div class="fg"><label class="fl">Email</label><input class="fi" id="cem" type="email" placeholder="your@email.com"/></div>
+            <div class="fg"><label class="fl">Phone</label><input class="fi" id="cph" type="tel" placeholder="(678) 000-0000"/></div>
+            <div class="fg"><label class="fl">I'm Interested In</label>
+              <select class="fi" id="cint"><option>Buying a Home</option><option>Selling a Home</option><option>Renting</option><option>Investment Property</option><option>General Inquiry</option></select>
+            </div>
+            <div class="fg"><label class="fl">Message</label><textarea class="fi" id="cmsg" rows="4" placeholder="Tell me what you're looking for…"></textarea></div>
+            <button class="gold-btn" style="width:100%;padding:16px;" onclick="submitForm()">Send Message →</button>
+            <div id="formOk" style="display:none;text-align:center;padding:16px;color:var(--gold2);font-size:13px;letter-spacing:1px;">✦ Message received — I'll be in touch within 24 hours.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /pages -->
+</div><!-- /main -->
+
+<!-- MODAL -->
+<div class="modal-ov" id="modalOv" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-hdr"><h3 id="mTitle">Property Details</h3><button class="modal-x" onclick="closeModal()">✕</button></div>
+    <div class="modal-bdy" id="mBdy"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ── CONFIG ──────────────────────────────────────────
+const TOKEN='6baca547742c79dc69d648f387efabb0'; // Replace with your Bridge token
+const DATASET='test'; // Change to 'fmls' when approved
+const API=`https://api.bridgedataoutput.com/api/v2/OData/${DATASET}`;
+// ────────────────────────────────────────────────────
+
+// CURSOR
+const cur=document.getElementById('cur'),cur2=document.getElementById('cur2');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+setInterval(()=>{rx+=(mx-rx)*.12;ry+=(my-ry)*.12;cur2.style.left=rx+'px';cur2.style.top=ry+'px';},16);
+document.querySelectorAll('button,a,.lcard,.qt').forEach(el=>{el.addEventListener('mouseenter',()=>{cur.style.width='16px';cur.style.height='16px';});el.addEventListener('mouseleave',()=>{cur.style.width='9px';cur.style.height='9px';});});
+
+// PRELOADER
+window.addEventListener('load',()=>setTimeout(()=>document.getElementById('preloader').classList.add('hide'),2600));
+
+// SIDEBAR
+let sidebarCollapsed=false;
+function toggleSidebar(){
+  sidebarCollapsed=!sidebarCollapsed;
+  document.getElementById('sidebar').classList.toggle('collapsed',sidebarCollapsed);
+  document.getElementById('sbToggle').textContent=sidebarCollapsed?'▶':'◀';
+}
+
+// NAVIGATION
+const pageTitles={home:'Home',listings:'Search Listings',map:'Property Map',openhouses:'Open Houses',valuation:'Home Valuation',mortgage:'Mortgage Calculator',rvb:'Rent vs Buy',closing:'Closing Costs',neighborhoods:'Neighborhoods',market:'Market Stats',schools:'School Finder',buyerguide:"Buyer's Guide",contact:'Contact Satish'};
+const pageSubs={home:'Georgia Real Estate',listings:'Live MLS · FMLS',map:'Explore by Location',openhouses:'This Weekend',valuation:'Free Instant Estimate',mortgage:'Financial Planning',rvb:'Smart Decision Tool',closing:'Georgia Specific',neighborhoods:'Georgia Living',market:'Live Insights',schools:'For Families',buyerguide:'Step by Step',contact:"Let's Connect"};
+let currentPage='home';
+function goTo(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  else document.querySelectorAll('.nav-item').forEach(b=>{if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+id+"'"))b.classList.add('active');});
+  document.getElementById('tbTitle').textContent=pageTitles[id]||id;
+  document.getElementById('tbSub').textContent=pageSubs[id]||'';
+  currentPage=id;
+  // lazy inits
+  if(id==='map'&&!mapInst)initMap();
+  if(id==='listings'&&!listingsLoaded)loadListings(1);
+  if(id==='openhouses')renderOpenHouses();
+  if(id==='schools')showSchools('cumming',document.querySelector('#page-schools .tab'));
+  if(id==='neighborhoods')showNhood('cumming',document.querySelector('#page-neighborhoods .tab'));
+  if(id==='buyerguide')renderBuyerSteps();
+  if(id==='market')setTimeout(()=>updateMktCharts(mktData.cumming),100);
+  document.getElementById('sidebar').classList.remove('mobile-open');
+}
+
+// HERO CANVAS
+const hc=document.getElementById('heroCanvas');
+const hCtx=hc.getContext('2d');
+function resizeHC(){hc.width=hc.offsetWidth;hc.height=hc.offsetHeight;}
+resizeHC();window.addEventListener('resize',resizeHC);
+const particles=Array.from({length:60},()=>({x:Math.random()*2000,y:Math.random()*600,r:Math.random()*1.4+.3,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,o:Math.random()*.35+.08}));
+function drawP(){hCtx.clearRect(0,0,hc.width,hc.height);particles.forEach(p=>{hCtx.beginPath();hCtx.arc(p.x,p.y,p.r,0,Math.PI*2);hCtx.fillStyle=`rgba(184,148,63,${p.o})`;hCtx.fill();p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>hc.width)p.vx*=-1;if(p.y<0||p.y>hc.height)p.vy*=-1;});requestAnimationFrame(drawP);}
+drawP();
+
+// ── LISTINGS ────────────────────────────────────────
+let page=1,total=0,allL=[],listingsLoaded=false;
+function fmtP(p){if(!p)return'Contact';if(p>=1000000)return'$'+(p/1000000).toFixed(2).replace(/\.?0+$/,'')+'M';if(p>=1000)return'$'+Math.round(p/1000)+'K';return'$'+p.toLocaleString();}
+function buildQ(){const c=document.getElementById('fCity').value.trim();const t=document.getElementById('fType').value;const b=document.getElementById('fBeds').value;const mx=document.getElementById('fMax').value;const pts=["StandardStatus eq 'Active'"];if(c)pts.push(`City eq '${c}'`);if(t)pts.push(`PropertyType eq '${t}'`);if(b)pts.push(`BedroomsTotal ge ${b}`);if(mx)pts.push(`ListPrice le ${mx}`);return pts.join(' and ');}
+async function loadListings(pg=1){
+  page=pg;listingsLoaded=true;
+  const g=document.getElementById('listingGrid');
+  const lb=document.getElementById('loadMoreBtn');
+  if(pg===1){g.innerHTML='<div class="load-state">Loading properties…</div>';lb.style.display='none';}
+  const skip=(pg-1)*12;
+  const url=`${API}/Property?access_token=${TOKEN}&$filter=${encodeURIComponent(buildQ())}&$top=12&$skip=${skip}&$orderby=ListPrice desc&$count=true`;
+  try{
+    const r=await fetch(url);if(!r.ok)throw new Error(r.status);
+    const d=await r.json();const listings=d.value||[];
+    if(d['@odata.count']){total=d['@odata.count'];document.getElementById('listingBadge').textContent=total>999?Math.round(total/1000)+'K+':total;document.getElementById('homeStatCount').textContent=total>1000?Math.round(total/1000)+'K+':total;document.getElementById('resMeta').textContent=`Showing ${Math.min(skip+listings.length,total)} of ${total.toLocaleString()} properties`;}
+    if(pg===1){allL=listings;g.innerHTML='';}else allL=[...allL,...listings];
+    if(!listings.length&&pg===1){g.innerHTML='<div class="load-state" style="border:none;">No properties found. Try different filters.</div>';return;}
+    listings.forEach(l=>g.insertAdjacentHTML('beforeend',renderCard(l)));
+    lb.style.display=allL.length<total?'block':'none';
+    if(mapInst)updateMapMarkers(allL);
+  }catch(e){loadDemo(pg);}
+}
+function loadDemo(pg){
+  const demo=[
+    {ListingId:'D1',StreetNumber:'5595',StreetName:'Banner BLVD',City:'Cumming',StateOrProvince:'GA',PostalCode:'30028',ListPrice:499999,BedroomsTotal:4,BathroomsTotalInteger:3,LivingArea:2456,PropertyType:'Residential',Latitude:34.2088,Longitude:-84.1402},
+    {ListingId:'D2',StreetNumber:'1415',StreetName:'Brookmere WAY',City:'Cumming',StateOrProvince:'GA',PostalCode:'30040',ListPrice:425000,BedroomsTotal:3,BathroomsTotalInteger:2,LivingArea:1640,PropertyType:'Residential',Latitude:34.1998,Longitude:-84.1255},
+    {ListingId:'D3',StreetNumber:'3210',StreetName:'Windward Pkwy',City:'Alpharetta',StateOrProvince:'GA',PostalCode:'30005',ListPrice:750000,BedroomsTotal:5,BathroomsTotalInteger:4,LivingArea:3800,PropertyType:'Residential',Latitude:34.0754,Longitude:-84.2742},
+    {ListingId:'D4',StreetNumber:'880',StreetName:'Canton ST',City:'Roswell',StateOrProvince:'GA',PostalCode:'30075',ListPrice:620000,BedroomsTotal:4,BathroomsTotalInteger:3,LivingArea:3100,PropertyType:'Residential',Latitude:34.0232,Longitude:-84.3616},
+    {ListingId:'D5',StreetNumber:'1024',StreetName:'Oaks Pkwy SE',City:'Smyrna',StateOrProvince:'GA',PostalCode:'30082',ListPrice:250000,BedroomsTotal:2,BathroomsTotalInteger:2,LivingArea:1294,PropertyType:'Residential',Latitude:33.884,Longitude:-84.514},
+    {ListingId:'D6',StreetNumber:'420',StreetName:'Old Milton Pkwy',City:'Alpharetta',StateOrProvince:'GA',PostalCode:'30009',ListPrice:890000,BedroomsTotal:5,BathroomsTotalInteger:4,LivingArea:4200,PropertyType:'Residential',Latitude:34.0754,Longitude:-84.295},
+  ];
+  const g=document.getElementById('listingGrid');
+  if(pg===1){allL=demo;g.innerHTML='';}
+  demo.forEach(l=>g.insertAdjacentHTML('beforeend',renderCard(l)));
+  document.getElementById('resMeta').textContent='Showing 6 demo properties · Replace Bridge token for live FMLS data';
+  if(mapInst)updateMapMarkers(demo);
+}
+function renderCard(l){
+  const addr=`${l.StreetNumber||''} ${l.StreetName||''}`.trim();
+  const city=`${l.City||''}, ${l.StateOrProvince||'GA'}`;
+  const isRent=l.PropertyType==='ResidentialLease';
+  const photos=l.Media||[];
+  const img=photos.length?`<img src="${photos[0].MediaURL}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'lcard-ph\\'>🏠</div>'"/>`:`<div class="lcard-ph">🏠</div>`;
+  const ld=JSON.stringify(l).replace(/"/g,'&quot;');
+  return`<div class="lcard" onclick="openModal(${ld})">
+  <div class="lcard-img">${img}<div class="lcard-status ${isRent?'status-rent':'status-sale'}">${isRent?'For Rent':'For Sale'}</div></div>
+  <div class="lcard-body">
+    <div class="lcard-price">${fmtP(l.ListPrice)}${isRent?'<span style="font-size:13px;color:rgba(255,255,255,.4);">/mo</span>':''}</div>
+    <div class="lcard-addr">${addr}<br/>${city} ${l.PostalCode||''}</div>
+    <div class="lcard-specs">
+      <div><div class="lspec-val">${l.BedroomsTotal||'—'}</div><div class="lspec-key">Beds</div></div>
+      <div><div class="lspec-val">${l.BathroomsTotalInteger||'—'}</div><div class="lspec-key">Baths</div></div>
+      <div><div class="lspec-val">${l.LivingArea?parseInt(l.LivingArea).toLocaleString():'—'}</div><div class="lspec-key">Sq Ft</div></div>
+    </div>
+  </div>
+  <div class="lcard-hover-bar">View Details →</div>
+</div>`;}
+function loadMore(){loadListings(page+1);}
+
+// ── MAP ──────────────────────────────────────────────
+let mapInst=null,mapMarkers=[];
+function initMap(){
+  mapInst=L.map('mapEl').setView([34.1,-84.2],10);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© CartoCDN',maxZoom:19}).addTo(mapInst);
+  if(allL.length)updateMapMarkers(allL);else loadListings(1);
+}
+function updateMapMarkers(listings){
+  mapMarkers.forEach(m=>m.remove());mapMarkers=[];
+  listings.forEach(l=>{
+    if(!l.Latitude||!l.Longitude)return;
+    const icon=L.divIcon({className:'',html:`<div style="background:rgba(10,15,26,.95);color:#b8943f;border:1px solid #b8943f;padding:4px 9px;font-size:10px;font-family:'Outfit',sans-serif;font-weight:600;white-space:nowrap;">${fmtP(l.ListPrice)}</div>`,iconAnchor:[28,12]});
+    const m=L.marker([l.Latitude,l.Longitude],{icon}).addTo(mapInst).bindPopup(`<b style="color:#b8943f;">${fmtP(l.ListPrice)}</b><br/>${l.StreetNumber||''} ${l.StreetName||''}<br/>${l.City||''}, GA`);
+    mapMarkers.push(m);
+  });
+}
+
+// ── MODAL ────────────────────────────────────────────
+function openModal(l){
+  const addr=`${l.StreetNumber||''} ${l.StreetName||''}, ${l.City||''}, ${l.StateOrProvince||'GA'}`.trim();
+  const photos=l.Media||[];
+  const isRent=l.PropertyType==='ResidentialLease';
+  document.getElementById('mTitle').textContent=addr;
+  document.getElementById('mBdy').innerHTML=`
+  ${photos.length?`<img class="modal-img" src="${photos[0].MediaURL}"/>`:`<div class="modal-img-ph">🏠</div>`}
+  <div class="modal-price">${fmtP(l.ListPrice)}${isRent?'<span style="font-size:16px;color:rgba(255,255,255,.4);">/mo</span>':''}</div>
+  <div class="modal-addr">MLS# ${l.ListingId||'—'} · ${l.City||''}, GA · ${isRent?'For Rent':'For Sale'}</div>
+  <div class="modal-specs">
+    <div class="mspec"><strong>${l.BedroomsTotal||'—'}</strong><span>Beds</span></div>
+    <div class="mspec"><strong>${l.BathroomsTotalInteger||'—'}</strong><span>Baths</span></div>
+    <div class="mspec"><strong>${l.LivingArea?parseInt(l.LivingArea).toLocaleString():'—'}</strong><span>Sq Ft</span></div>
+  </div>
+  ${l.PublicRemarks?`<div class="modal-desc">${l.PublicRemarks}</div>`:''}
+  <button class="gold-btn" style="width:100%;" onclick="goTo('contact',null);closeModal()">Inquire About This Property →</button>`;
+  document.getElementById('modalOv').classList.add('open');
+}
+function closeModal(){document.getElementById('modalOv').classList.remove('open');}
+
+// ── OPEN HOUSES ──────────────────────────────────────
+function renderOpenHouses(){
+  document.getElementById('ohDateLine').textContent=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})+' — Upcoming this weekend';
+  const oh=[
+    {addr:'5595 Banner BLVD',city:'Cumming, GA 30028',price:'$499,999',date:'Sat Apr 26',time:'1:00–3:00 PM',beds:4,baths:3,sqft:'2,456'},
+    {addr:'3210 Windward Pkwy',city:'Alpharetta, GA 30005',price:'$750,000',date:'Sat Apr 26',time:'2:00–4:00 PM',beds:5,baths:4,sqft:'3,800'},
+    {addr:'880 Canton ST',city:'Roswell, GA 30075',price:'$620,000',date:'Sun Apr 27',time:'12:00–2:00 PM',beds:4,baths:3,sqft:'3,100'},
+    {addr:'1415 Brookmere WAY',city:'Cumming, GA 30040',price:'$425,000',date:'Sun Apr 27',time:'1:00–3:00 PM',beds:3,baths:2,sqft:'1,640'},
+    {addr:'420 Old Milton Pkwy',city:'Alpharetta, GA 30009',price:'$890,000',date:'Sat Apr 26',time:'11:00 AM–1:00 PM',beds:5,baths:4,sqft:'4,200'},
+    {addr:'2530 Vistoria DR',city:'Cumming, GA 30041',price:'$389,000',date:'Sun Apr 27',time:'2:00–4:00 PM',beds:4,baths:2,sqft:'2,050'},
+  ];
+  document.getElementById('ohGrid').innerHTML=oh.map(o=>`
+  <div class="oh-card">
+    <div class="oh-date-badge"><div class="oh-date">${o.date}</div><div class="oh-time">${o.time}</div></div>
+    <div style="font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--white);margin-bottom:6px;">${o.price}</div>
+    <div style="font-size:14px;color:var(--white);font-weight:500;margin-bottom:3px;">${o.addr}</div>
+    <div style="font-size:12px;color:rgba(255,255,255,.35);margin-bottom:14px;">${o.city}</div>
+    <div style="display:flex;gap:16px;font-size:11px;color:rgba(255,255,255,.35);padding-top:12px;border-top:1px solid rgba(255,255,255,.05);">
+      <span><strong style="color:var(--white);">${o.beds}</strong> Beds</span>
+      <span><strong style="color:var(--white);">${o.baths}</strong> Baths</span>
+      <span><strong style="color:var(--white);">${o.sqft}</strong> sqft</span>
+    </div>
+  </div>`).join('');
+}
+
+// ── VALUATION ────────────────────────────────────────
+function runValuation(){
+  const addr=document.getElementById('vAddr').value.trim();
+  if(!addr){alert('Please enter a property address.');return;}
+  const sqft=parseInt(document.getElementById('vSqft').value)||2000;
+  const beds=parseInt(document.getElementById('vBeds').value)||3;
+  const year=parseInt(document.getElementById('vYear').value)||2005;
+  const btn=document.getElementById('valBtn');btn.textContent='Calculating…';btn.disabled=true;
+  setTimeout(()=>{
+    const base=beds===2?280000:beds===3?390000:beds===4?525000:690000;
+    const age=Math.max(.7,1-(2026-year)*.005);
+    const sf=sqft/2000;
+    const mid=Math.round(base*age*sf/10000)*10000;
+    document.getElementById('valLow').textContent='$'+(Math.round(mid*.92/10000)*10000).toLocaleString();
+    document.getElementById('valMid').textContent='$'+mid.toLocaleString();
+    document.getElementById('valHigh').textContent='$'+(Math.round(mid*1.09/10000)*10000).toLocaleString();
+    document.getElementById('valAddrDisplay').textContent=addr;
+    document.getElementById('valPsf').textContent='$'+Math.round(mid/sqft);
+    document.getElementById('valForm').style.display='none';
+    document.getElementById('valResult').style.display='block';
+    btn.textContent='Get My Free Home Valuation →';btn.disabled=false;
+  },1800);
+}
+
+// ── MORTGAGE ─────────────────────────────────────────
+let loanTerm=30,pieInst=null;
+function setTerm(t,btn){loanTerm=t;document.querySelectorAll('#termBtns .pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');calcMortgage();}
+function fmtM(n){if(n>=1000000)return'$'+(n/1000000).toFixed(1)+'M';if(n>=1000)return'$'+Math.round(n/1000)+'K';return'$'+Math.round(n).toLocaleString();}
+function calcMortgage(){
+  const price=+document.getElementById('homePrice').value;
+  const dp=+document.getElementById('downPct').value;
+  const rate=+document.getElementById('rateSlider').value;
+  const down=price*dp/100,loan=price-down,mo=rate/100/12,n=loanTerm*12;
+  const pmt=mo===0?loan/n:loan*(mo*Math.pow(1+mo,n))/(Math.pow(1+mo,n)-1);
+  const total=pmt*n,interest=total-loan;
+  document.getElementById('hpDisp').textContent='$'+price.toLocaleString();
+  document.getElementById('dpDisp').textContent=dp+'% · $'+Math.round(down).toLocaleString();
+  document.getElementById('rateDisp').textContent=rate.toFixed(1)+'%';
+  document.getElementById('mResult').textContent='$'+Math.round(pmt).toLocaleString();
+  document.getElementById('loanRes').textContent=fmtM(loan);
+  document.getElementById('totalRes').textContent=fmtM(total);
+  document.getElementById('intRes').textContent=fmtM(interest);
+  document.getElementById('downRes').textContent=fmtM(down);
+  drawPie(loan,interest,down);
+}
+function drawPie(l,i,d){
+  const canvas=document.getElementById('pieChart');if(!canvas)return;
+  if(pieInst){pieInst.destroy();}
+  pieInst=new Chart(canvas,{type:'doughnut',data:{labels:['Principal','Interest','Down Pmt'],datasets:[{data:[Math.round(l),Math.round(i),Math.round(d)],backgroundColor:['#b8943f','#d4af6a','rgba(184,148,63,.3)'],borderWidth:0}]},options:{responsive:true,plugins:{legend:{labels:{color:'rgba(255,255,255,.4)',font:{size:11,family:'Outfit'}}}},cutout:'55%'}});
+}
+
+// ── RENT VS BUY ──────────────────────────────────────
+function calcRvB(){
+  const p=+document.getElementById('rvbP').value,r=+document.getElementById('rvbR').value;
+  const d=+document.getElementById('rvbD').value/100,y=+document.getElementById('rvbY').value;
+  document.getElementById('rvbPL').textContent='$'+p.toLocaleString();
+  document.getElementById('rvbRL').textContent='$'+r.toLocaleString();
+  document.getElementById('rvbDL').textContent=Math.round(d*100)+'%';
+  document.getElementById('rvbYL').textContent=y+' year'+(y>1?'s':'');
+  const tRent=r*12*y*1.025;
+  const loan=p*(1-d),mo=0.065/12,n=360;
+  const pmt=loan*(mo*Math.pow(1+mo,n))/(Math.pow(1+mo,n)-1);
+  const tMort=pmt*12*y,tax=p*.01*y,ins=p*.005*y,maint=p*.01*y;
+  const tBuy=p*d+tMort+tax+ins+maint;
+  const appr=p*Math.pow(1.09,y)-p;
+  const eqPaid=loan*(1-Math.pow(1+mo,-(n-y*12))*(Math.pow(1+mo,n)-Math.pow(1+mo,y*12))/(Math.pow(1+mo,n)-1));
+  const buyNet=tBuy-appr-eqPaid;
+  const diff=Math.abs(tRent-buyNet);
+  const buyWins=buyNet<tRent;
+  document.getElementById('rvbWinner').textContent=buyWins?'Buying saves more':'Renting saves more';
+  document.getElementById('rvbSavings').textContent='$'+Math.round(diff).toLocaleString();
+  document.getElementById('rvbTR').textContent='$'+Math.round(tRent).toLocaleString();
+  document.getElementById('rvbTB').textContent='$'+Math.round(buyNet).toLocaleString();
+  document.getElementById('rvbEQ').textContent='$'+Math.round(eqPaid).toLocaleString();
+  document.getElementById('rvbAP').textContent='$'+Math.round(appr).toLocaleString();
+  document.getElementById('rvbVerdict' in document?'rvbVerdict':'rvb-verdict');
+}
+
+// ── CLOSING COSTS ────────────────────────────────────
+function calcClosing(){
+  const price=parseFloat(document.getElementById('ccPrice').value)||450000;
+  const loan=parseFloat(document.getElementById('ccLoan').value)||360000;
+  const role=document.getElementById('ccRole').value;
+  const items=role==='buyer'?[
+    {l:'Loan Origination Fee (1%)',v:loan*.01},
+    {l:'Appraisal Fee',v:550},{l:'Home Inspection',v:475},
+    {l:'Title Search & Insurance',v:price*.005+800},
+    {l:'GA Intangibles Tax (0.2% of loan)',v:loan*.002},
+    {l:'Recording Fees',v:150},
+    {l:"Homeowner's Insurance (1st yr)",v:price*.005},
+    {l:'Prepaid Property Tax (3 mo)',v:price*.01/4},
+    {l:'Prepaid Interest (15 days)',v:loan*.065/365*15},
+    {l:'Attorney Fee (required in GA)',v:650},
+  ]:[
+    {l:'Real Estate Commission (5.5%)',v:price*.055},
+    {l:'GA Transfer Tax (0.1%)',v:price*.001},
+    {l:"Title Insurance (Seller's)",v:price*.003},
+    {l:'Attorney Fee',v:650},{l:'Recording & Filing Fees',v:200},
+    {l:'Home Warranty (optional)',v:500},
+    {l:'Outstanding HOA Dues (est.)',v:300},
+  ];
+  const total=items.reduce((s,i)=>s+i.v,0);
+  document.getElementById('ccResults').innerHTML=
+    items.map(i=>`<div class="result-row"><span class="result-row-label">${i.l}</span><span class="result-row-val">$${Math.round(i.v).toLocaleString()}</span></div>`).join('')+
+    `<div style="background:rgba(184,148,63,.08);border:1px solid var(--gold);padding:18px 20px;display:flex;justify-content:space-between;align-items:center;margin-top:4px;"><span style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);">Estimated Total</span><span style="font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--white);">$${Math.round(total).toLocaleString()}</span></div>`;
+}
+
+// ── NEIGHBORHOODS ────────────────────────────────────
+const nhoodData={
+  cumming:{stats:[['$485K','Median Price'],['A+','School Rating'],['28min','To ATL'],['↑12%','YoY Growth']],desc:"Cumming is one of Georgia's fastest-growing communities, offering exceptional schools, master-planned neighborhoods, and easy access to Lake Lanier. Small-town charm meets modern amenities.",points:[['Top Schools','Denmark High, West Forsyth High, Vickery Creek Middle'],['Popular Areas','Windermere, Polo Golf & Country Club, South Forsyth'],['Lifestyle','Lake Lanier access, outdoor trails, family-friendly parks'],['Home Types','Single-family $300K–$1.5M, new construction available']]},
+  alpharetta:{stats:[['$625K','Median Price'],['A+','School Rating'],['26min','To ATL'],['↑9%','YoY Growth']],desc:"Known as the 'Tech City of the South,' Alpharetta is home to hundreds of Fortune 500 tech companies, vibrant Downtown Alpharetta, and Avalon mixed-use district.",points:[['Top Schools','Milton High, Alpharetta High, Northwestern Middle'],['Popular Areas','Avalon, Downtown Alpharetta, Webb Bridge Park'],['Lifestyle','Upscale dining, luxury retail, Big Creek Greenway trail'],['Home Types','Luxury $500K–$3M+, townhomes, condos']]},
+  roswell:{stats:[['$540K','Median Price'],['A','School Rating'],['22min','To ATL'],['↑8%','YoY Growth']],desc:"Roswell balances historic Southern charm with modern suburban living. Its award-winning Downtown, Chattahoochee River access, and vibrant arts scene make it a top Metro Atlanta destination.",points:[['Top Schools','Roswell High, Centennial High, Elkins Pointe Middle'],['Popular Areas','Historic Downtown, East Roswell, Horseshoe Bend'],['Lifestyle','Chattahoochee parks, antique shops, live music venues'],['Home Types','Historic homes to modern builds, $350K–$2M']]}
+};
+function showNhood(id,btn){
+  document.querySelectorAll('#page-neighborhoods .tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  const d=nhoodData[id];
+  document.getElementById('nhoodContent').innerHTML=`
+  <div class="two-col">
+    <div>
+      <div class="four-col" style="grid-template-columns:repeat(2,1fr);margin-bottom:24px;">${d.stats.map(s=>`<div class="stat-box"><div class="stat-num">${s[0]}</div><div class="stat-label">${s[1]}</div></div>`).join('')}</div>
+      <div style="background:var(--ink2);border:1px solid var(--border);padding:24px;">
+        <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:12px;">About this Area</div>
+        <p style="font-size:14px;color:rgba(255,255,255,.55);line-height:1.9;margin-bottom:24px;">${d.desc}</p>
+        ${d.points.map(p=>`<div style="display:flex;gap:12px;margin-bottom:12px;align-items:flex-start;"><div style="width:5px;height:5px;background:var(--gold);flex-shrink:0;margin-top:7px;"></div><div style="font-size:13px;color:rgba(255,255,255,.7);"><strong style="color:var(--white);">${p[0]}:</strong> ${p[1]}</div></div>`).join('')}
+      </div>
+    </div>
+    <div>
+      <div style="background:var(--ink2);border:1px solid var(--border);padding:0;overflow:hidden;">
+        <div style="height:220px;background:linear-gradient(135deg,var(--ink),var(--ink3));display:flex;align-items:center;justify-content:center;position:relative;">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:48px;color:rgba(255,255,255,.1);">${id.charAt(0).toUpperCase()+id.slice(1)}</div>
+        </div>
+        <div style="padding:24px;">
+          <button class="gold-btn" style="width:100%;margin-bottom:8px;" onclick="document.getElementById('fCity').value='${id.charAt(0).toUpperCase()+id.slice(1)}';goTo('listings',null);loadListings(1);">View ${id.charAt(0).toUpperCase()+id.slice(1)} Listings →</button>
+          <button class="ghost-btn" style="width:100%;" onclick="goTo('contact',null)">Schedule Area Tour</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── MARKET STATS ─────────────────────────────────────
+const mktData={
+  cumming:{price:'$485K',dom:'18',inv:'142',sold:'89',trend:[410,420,435,448,452,460,468,472,478,481,484,485],dist:[12,28,35,20,5]},
+  alpharetta:{price:'$625K',dom:'15',inv:'98',sold:'61',trend:[540,555,568,580,590,598,608,612,618,621,623,625],dist:[5,18,32,28,17]},
+  roswell:{price:'$540K',dom:'20',inv:'115',sold:'72',trend:[465,472,480,490,498,505,512,518,524,528,535,540],dist:[8,22,38,24,8]}
+};
+let pChartInst=null,dChartInst=null;
+function setMktab(city,btn){
+  document.querySelectorAll('#page-market .tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  const d=mktData[city];
+  document.getElementById('kPrice').textContent=d.price;document.getElementById('kDom').textContent=d.dom;
+  document.getElementById('kInv').textContent=d.inv;document.getElementById('kSold').textContent=d.sold;
+  updateMktCharts(d);
+}
+function updateMktCharts(d){
+  const months=['May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr'];
+  const pc=document.getElementById('priceChart');const dc=document.getElementById('distChart');
+  if(!pc||!dc)return;
+  if(pChartInst)pChartInst.destroy();if(dChartInst)dChartInst.destroy();
+  pChartInst=new Chart(pc,{type:'line',data:{labels:months,datasets:[{data:d.trend,borderColor:'#b8943f',backgroundColor:'rgba(184,148,63,.07)',borderWidth:2,pointRadius:3,pointBackgroundColor:'#b8943f',tension:.4,fill:true}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'rgba(255,255,255,.3)',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'rgba(255,255,255,.3)',font:{size:10},callback:v=>'$'+v+'K'},grid:{color:'rgba(255,255,255,.04)'}}}}});
+  dChartInst=new Chart(dc,{type:'bar',data:{labels:['<$300K','$300-500K','$500-700K','$700K-1M','$1M+'],datasets:[{data:d.dist,backgroundColor:['rgba(184,148,63,.25)','rgba(184,148,63,.45)','rgba(184,148,63,.8)','rgba(184,148,63,.45)','rgba(184,148,63,.25)'],borderRadius:2}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'rgba(255,255,255,.25)',font:{size:9}},grid:{display:false}},y:{ticks:{color:'rgba(255,255,255,.3)',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}}}}});
+}
+
+// ── SCHOOLS ──────────────────────────────────────────
+const schoolDB={
+  cumming:[{n:'Denmark High School',t:'High School',g:'9–12',r:'A+',s:'2,450',note:'#1 in Forsyth County'},{n:'West Forsyth High School',t:'High School',g:'9–12',r:'A',s:'2,100',note:'Strong STEM'},{n:'Forsyth Central High',t:'High School',g:'9–12',r:'A',s:'1,980',note:'Award-winning arts'},{n:'Vickery Creek Middle',t:'Middle School',g:'6–8',r:'A+',s:'1,100',note:'Top 5% in Georgia'},{n:'South Forsyth Middle',t:'Middle School',g:'6–8',r:'A',s:'980',note:'Gifted programs'},{n:'Haw Creek Elementary',t:'Elementary',g:'K–5',r:'A+',s:'620',note:'GreatSchools 9/10'}],
+  alpharetta:[{n:'Milton High School',t:'High School',g:'9–12',r:'A+',s:'2,200',note:'#1 in Fulton County'},{n:'Alpharetta High School',t:'High School',g:'9–12',r:'A+',s:'2,050',note:'National Merit scholars'},{n:'Hopewell Middle School',t:'Middle School',g:'6–8',r:'A',s:'1,050',note:'IB programme'},{n:'Northwestern Middle',t:'Middle School',g:'6–8',r:'A+',s:'1,120',note:'STEM certified'},{n:'Manning Oaks Elementary',t:'Elementary',g:'K–5',r:'A+',s:'680',note:'GreatSchools 10/10'},{n:'Cogburn Woods Elementary',t:'Elementary',g:'K–5',r:'A+',s:'650',note:'Top-rated STEM'}],
+  roswell:[{n:'Roswell High School',t:'High School',g:'9–12',r:'A',s:'2,400',note:'IB World School'},{n:'Centennial High School',t:'High School',g:'9–12',r:'A',s:'1,900',note:'Strong athletics'},{n:'Elkins Pointe Middle',t:'Middle School',g:'6–8',r:'A',s:'900',note:'Gifted magnet'},{n:'Crabapple Middle School',t:'Middle School',g:'6–8',r:'A+',s:'1,050',note:'Top-rated arts'},{n:'Esther Jackson Elementary',t:'Elementary',g:'K–5',r:'A',s:'580',note:'GreatSchools 8/10'},{n:'Mountain Park Elementary',t:'Elementary',g:'K–5',r:'A+',s:'610',note:'STEM focus'}]
+};
+function showSchools(id,btn){
+  document.querySelectorAll('#page-schools .tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');
+  document.getElementById('schoolGrid').innerHTML=schoolDB[id].map(s=>`
+  <div class="school-card">
+    <div><div class="school-name">${s.n}</div><div class="school-meta">${s.t} · Grades ${s.g} · ${s.s} students · ${s.note}</div></div>
+    <div class="grade-circle ${s.r.startsWith('A+')?'ga':'gb'}">${s.r}</div>
+  </div>`).join('');
+}
+
+// ── BUYER'S GUIDE ────────────────────────────────────
+const steps=[
+  {icon:'🏦',title:'Get Pre-Approved',sub:'Step 1',detail:'<strong>Get Pre-Approved First.</strong> Before searching, get a mortgage pre-approval letter from a lender. This tells sellers you\'re serious and sets your real budget.<br/><br/>Documents needed: W2s, 2 years tax returns, pay stubs, 3 months bank statements, government ID.<br/><br/>Popular Georgia lenders: Truist, Ameris Bank, FirstBank. Pre-approval takes 1–3 business days. I can connect you with trusted lenders.'},
+  {icon:'🔍',title:'Home Search',sub:'Step 2',detail:'<strong>Search with Strategy.</strong> I\'ll set up custom MLS alerts with your exact criteria — new matching homes land in your inbox the moment they go live on FMLS.<br/><br/>In Cumming and Alpharetta, desirable homes often go under contract within 48–72 hours. We\'ll tour properties together, and I\'ll give honest market insights on each one.'},
+  {icon:'📝',title:'Make an Offer',sub:'Step 3',detail:'<strong>Craft a Winning Offer.</strong> I\'ll prepare your offer using recent comparable sales. In Metro Atlanta\'s competitive market, we may include escalation clauses, flexible closing dates, or personal letters to stand out.<br/><br/>Typical earnest money: 1–2% of purchase price. Due diligence period in Georgia: 7–14 days (negotiable).'},
+  {icon:'🔬',title:'Due Diligence',sub:'Step 4',detail:'<strong>Inspect & Verify Everything.</strong> Georgia\'s due diligence period lets you inspect with no obligation to proceed. Recommended inspections:<br/><br/>• General inspection ($400–600)<br/>• Radon test ($150)<br/>• Sewer scope (if older home)<br/><br/>If issues arise, we negotiate repairs or price credits. Appraisal ordered by lender takes 5–10 business days.'},
+  {icon:'🏠',title:'Close & Move In',sub:'Step 5',detail:'<strong>Close & Get Your Keys!</strong> Georgia closing typically takes 30–45 days from accepted offer. You\'ll sign final documents at the title company/attorney\'s office.<br/><br/>Bring cashier\'s check or wire for closing costs + down payment. Georgia closing costs: typically 2–4% of purchase price.<br/><br/>Then — the keys are yours!'}
+];
+let activeStep=0;
+function renderBuyerSteps(){
+  if(document.getElementById('stepTrack').children.length)return;
+  document.getElementById('stepTrack').innerHTML=steps.map((s,i)=>`
+  <div class="step-btn ${i===0?'active':''}" onclick="showStep(${i},this)">
+    <div class="step-num">${s.sub}</div>
+    <div class="step-icon">${s.icon}</div>
+    <div class="step-title">${s.title}</div>
+  </div>`).join('');
+  showStep(0,document.querySelector('.step-btn'));
+}
+function showStep(i,btn){
+  document.querySelectorAll('.step-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  const s=steps[i];
+  document.getElementById('stepDetail').innerHTML=`
+  <div style="display:flex;gap:20px;align-items:flex-start;">
+    <div style="font-size:40px;flex-shrink:0;">${s.icon}</div>
+    <div><div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:8px;">${s.sub} of 5</div>
+    <div style="font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--white);margin-bottom:14px;">${s.title}</div>
+    <p style="font-size:14px;color:rgba(255,255,255,.55);line-height:1.9;">${s.detail}</p>
+    <div style="margin-top:24px;display:flex;gap:10px;">
+      ${i<4?`<button class="gold-btn" onclick="showStep(${i+1},document.querySelectorAll('.step-btn')[${i+1}])">Next: ${steps[i+1].title} →</button>`:`<button class="gold-btn" onclick="goTo('contact',null)">Talk to Satish →</button>`}
+      <button class="ghost-btn" onclick="goTo('contact',null)">Get Started Today</button>
+    </div></div>
+  </div>`;
+}
+
+// ── CONTACT FORM ─────────────────────────────────────
+function submitForm(){
+  const req=['cfn','cln','cem','cph','cmsg'];
+  if(req.some(id=>!document.getElementById(id).value.trim())){alert('Please fill in all fields.');return;}
+  const btn=event.target;btn.textContent='Sending…';btn.disabled=true;
+  setTimeout(()=>{btn.style.display='none';document.getElementById('formOk').style.display='block';},900);
+}
+
+// ── INIT ─────────────────────────────────────────────
+window.addEventListener('load',()=>{
+  calcMortgage();
+  calcRvB();
+  calcClosing();
+});
+</script>
+</body>
+</html>
